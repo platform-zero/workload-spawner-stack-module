@@ -1,0 +1,95 @@
+{
+  "contractVersion": 1,
+  "components": {
+    "workload-spawner": {
+      "name": "Workload Spawner",
+      "description": "Operator-managed isolated application workspaces.",
+      "moduleType": "service",
+      "primaryHost": "spawner",
+      "routes": [
+        {
+          "host": "spawner",
+          "auth": "forward_auth",
+          "ui": true,
+          "audience": "operator",
+          "rbacEnforcement": "edge_group_allow"
+        },
+        {
+          "host": "*.apps",
+          "auth": "forward_auth",
+          "ui": true,
+          "audience": "operator",
+          "rbacEnforcement": "edge_group_allow"
+        }
+      ],
+      "auth": {
+        "mode": "forward_auth"
+      },
+      "rbac": {
+        "groups": [
+          "admins",
+          "operators"
+        ]
+      },
+      "state": {
+        "mode": "volumes",
+        "stores": [
+          "workload_spawner_data",
+          "workload_spawner_postgres_data"
+        ]
+      },
+      "backup": {
+        "policy": "kopia",
+        "targets": [
+          "workload_spawner_data",
+          "workload_spawner_postgres_data"
+        ]
+      },
+      "restore": {
+        "drills": [
+          "instance-state",
+          "database-connectivity"
+        ]
+      },
+      "observability": {
+        "health": true,
+        "logs": true,
+        "metrics": false
+      },
+      "evidence": {
+        "expectations": [
+          "workload-spawner.api",
+          "workload-spawner.owner-boundary",
+          "workload-spawner.wildcard-route"
+        ]
+      },
+      "screenshots": [
+        "workload-spawner/home"
+      ],
+      "portal": {
+        "visible": true,
+        "hrefHost": "spawner",
+        "category": "Developer",
+        "profiles": [
+          "operator",
+          "developer"
+        ],
+        "description": "Provision and manage isolated application workspaces.",
+        "audience": "operator"
+      },
+      "slo": {
+        "availability": "98.0%",
+        "latencyMs": 2000
+      },
+      "access": {
+        "offboarding": "keycloak_group_removal",
+        "owner": "platform"
+      },
+      "artifacts": {
+        "json": [
+          "reports/workload-spawner.json"
+        ]
+      }
+    }
+  }
+}

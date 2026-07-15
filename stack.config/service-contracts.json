@@ -75,7 +75,7 @@
           "developer"
         ],
         "description": "Provision and manage isolated application workspaces.",
-        "audience": "operator"
+        "audience": "employee"
       },
       "slo": {
         "availability": "98.0%",

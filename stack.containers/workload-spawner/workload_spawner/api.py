@@ -6,6 +6,7 @@ from typing import Any
 
 from .common import (
     JsonHandler,
+    INSTANCE_STATE_LOCK,
     env,
     load_instances,
     load_templates,
@@ -193,33 +194,36 @@ class ApiHandler(JsonHandler):
             "url": f"https://{host}/",
             "containerName": f"workload-{instance_id}",
             "volumeName": f"workload_{instance_id}_data",
+            "port": int(template["port"]),
             "status": "creating",
             "templateContext": context,
         }
-        instances = load_instances()
-        if instance_id in instances:
-            self.write_error_json(HTTPStatus.CONFLICT, "instance already exists")
-            return
-        provision_postgres(db_name, db_user, db_password)
-        ensure_container(instance, template)
-        instance["status"] = "running"
-        instances[instance_id] = instance
-        save_instances(instances)
+        with INSTANCE_STATE_LOCK:
+            instances = load_instances()
+            if instance_id in instances:
+                self.write_error_json(HTTPStatus.CONFLICT, "instance already exists")
+                return
+            provision_postgres(db_name, db_user, db_password)
+            ensure_container(instance, template)
+            instance["status"] = "running"
+            instances[instance_id] = instance
+            save_instances(instances)
         public = {key: value for key, value in instance.items() if key != "templateContext"}
         self.write_json(HTTPStatus.CREATED, public)
 
     def stop_instance(self, owner: str, groups: set[str], instance_id: str) -> None:
-        instances = load_instances()
-        instance = instances.get(instance_id)
-        if instance is None:
-            self.write_error_json(HTTPStatus.NOT_FOUND, "not found")
-            return
-        if instance.get("owner") != owner and "admins" not in groups:
-            self.write_error_json(HTTPStatus.FORBIDDEN, "instance belongs to another user")
-            return
-        stop_container(instance["containerName"])
-        instance["status"] = "stopped"
-        save_instances(instances)
+        with INSTANCE_STATE_LOCK:
+            instances = load_instances()
+            instance = instances.get(instance_id)
+            if instance is None:
+                self.write_error_json(HTTPStatus.NOT_FOUND, "not found")
+                return
+            if instance.get("owner") != owner and "admins" not in groups:
+                self.write_error_json(HTTPStatus.FORBIDDEN, "instance belongs to another user")
+                return
+            stop_container(instance["containerName"])
+            instance["status"] = "stopped"
+            save_instances(instances)
         self.write_json(HTTPStatus.OK, {"id": instance_id, "status": "stopped"})
 
 

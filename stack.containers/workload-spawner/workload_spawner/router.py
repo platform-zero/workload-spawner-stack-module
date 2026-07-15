@@ -55,7 +55,7 @@ class RouterHandler(JsonHandler):
 
         length = int(self.headers.get("Content-Length", "0") or "0")
         body = self.rfile.read(length) if length else None
-        upstream = http.client.HTTPConnection(instance["containerName"], 5678, timeout=120)
+        upstream = http.client.HTTPConnection(instance["containerName"], int(instance.get("port", 5678)), timeout=120)
         headers = {
             key: value
             for key, value in self.headers.items()

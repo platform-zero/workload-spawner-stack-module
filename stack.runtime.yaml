@@ -3,6 +3,28 @@ schemaVersion: 1
 module: "workload-spawner"
 target: "apps"
 services:
+  workload-spawner-postgres:
+    image: "timescale/timescaledb@sha256:0af03ecf697825f6ddae76fd275d16bf46007bed6d00eb3d754779cb7db96fa6"
+    containerName: "workload-spawner-postgres"
+    lifecycle: "daemon"
+    updatePolicy: "pinned"
+    placement: "rootless"
+    rootlessDomain: "workload-spawner"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_USER: "${WORKLOAD_SPAWNER_POSTGRES_USER:-workload_spawner}"
+      POSTGRES_PASSWORD: "${WORKLOAD_SPAWNER_POSTGRES_PASSWORD}"
+      POSTGRES_DB: "postgres"
+    networks:
+      postgres: {}
+    volumes:
+      - "workload_spawner_postgres_data:/var/lib/postgresql/data"
+    health:
+      test: ["CMD-SHELL", "pg_isready -U ${WORKLOAD_SPAWNER_POSTGRES_USER:-workload_spawner} -d postgres -t 1"]
+      interval: "5s"
+      timeout: "5s"
+      retries: 24
+      start_period: "20s"
   workload-spawner-api:
     image: "localhost/webservices/workload-spawner-api:bundle"
     build:
@@ -19,7 +41,7 @@ services:
       - "-m"
       - "workload_spawner.api"
     dependencies:
-      postgres: "started"
+      workload-spawner-postgres: "healthy"
     networks:
       caddy: {}
       postgres: {}
@@ -30,14 +52,13 @@ services:
       WORKLOAD_SPAWNER_ALLOWED_GROUPS: "${WORKLOAD_SPAWNER_ALLOWED_GROUPS:-operators,admins}"
       WORKLOAD_SPAWNER_PODMAN_SOCKET: "unix:///run/podman/podman.sock"
       WORKLOAD_SPAWNER_PODMAN_NETWORKS: "webservices_workload-spawner_caddy,webservices_workload-spawner_postgres"
-      POSTGRES_HOST: "postgres"
+      POSTGRES_HOST: "workload-spawner-postgres"
       POSTGRES_PORT: "5432"
       POSTGRES_ADMIN_DB: "${POSTGRES_DB:-postgres}"
-      POSTGRES_ADMIN_USER: "${POSTGRES_USER:-postgres}"
-      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_ADMIN_USER: "${WORKLOAD_SPAWNER_POSTGRES_USER:-workload_spawner}"
+      POSTGRES_ADMIN_PASSWORD: "${WORKLOAD_SPAWNER_POSTGRES_PASSWORD}"
     volumes:
       - "workload_spawner_data:/var/lib/workload-spawner"
-      - "workload_spawner_instances:/var/lib/workload-spawner/instances"
       - "./configs/workload-spawner/templates:/etc/workload-spawner/templates:ro"
       - "%t/podman/podman.sock:/run/podman/podman.sock"
     health:
@@ -78,5 +99,5 @@ services:
 volumes:
   workload_spawner_data:
     hostPath: "${STACK_VOLUME_ROOT}/workload_spawner_data"
-  workload_spawner_instances:
-    hostPath: "${STACK_VOLUME_ROOT}/workload_spawner_instances"
+  workload_spawner_postgres_data:
+    hostPath: "${STACK_VOLUME_ROOT}/workload_spawner_postgres_data"

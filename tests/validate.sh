@@ -13,4 +13,5 @@ if [ -z "$validator" ]; then
   done
 fi
 [ -n "$validator" ] || { printf '[module-contract] set WEBSERVICES_MODULE_CONTRACT_VALIDATOR or keep sso-stack-generator next to modules workspace\n' >&2; exit 1; }
-exec "$validator" validate "$repo_root"
+"$validator" validate "$repo_root"
+PYTHONPATH="$repo_root/stack.containers/workload-spawner" python3 -m unittest discover -s "$repo_root/tests" -p 'test_*.py'

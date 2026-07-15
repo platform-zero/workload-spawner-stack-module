@@ -6,6 +6,7 @@ import re
 import secrets
 import subprocess
 import tempfile
+import threading
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
@@ -15,6 +16,7 @@ from urllib.parse import urlparse
 
 
 SAFE_SLUG_RE = re.compile(r"[^a-z0-9-]+")
+INSTANCE_STATE_LOCK = threading.RLock()
 
 
 def env(name: str, default: str = "") -> str:

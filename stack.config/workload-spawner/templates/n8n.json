@@ -1,0 +1,30 @@
+{
+  "id": "n8n",
+  "name": "n8n",
+  "description": "Persistent per-user workflow automation service.",
+  "image": "docker.io/n8nio/n8n:1.103.2",
+  "port": 5678,
+  "routePrefix": "n8n",
+  "persistent": true,
+  "dataVolume": "/home/node/.n8n",
+  "environment": {
+    "DB_TYPE": "postgresdb",
+    "DB_POSTGRESDB_HOST": "postgres",
+    "DB_POSTGRESDB_PORT": "5432",
+    "DB_POSTGRESDB_DATABASE": "{{db_name}}",
+    "DB_POSTGRESDB_USER": "{{db_user}}",
+    "DB_POSTGRESDB_PASSWORD": "{{db_password}}",
+    "N8N_HOST": "{{host}}",
+    "N8N_PORT": "5678",
+    "N8N_PROTOCOL": "https",
+    "WEBHOOK_URL": "https://{{host}}/",
+    "N8N_EDITOR_BASE_URL": "https://{{host}}/",
+    "N8N_SECURE_COOKIE": "true",
+    "N8N_SAMESITE_COOKIE": "lax",
+    "N8N_ENCRYPTION_KEY": "{{encryption_key}}"
+  },
+  "notes": [
+    "Community n8n does not include native OIDC/SAML SSO; Caddy provides the edge SSO boundary.",
+    "Use wildcard subdomains rather than path routing because n8n assumes it owns its URL root."
+  ]
+}

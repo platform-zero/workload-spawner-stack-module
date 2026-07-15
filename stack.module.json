@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "workload-spawner",
+  "repo": "workload-spawner-stack-module",
+  "runtimeId": "workload-spawner",
+  "lifecycle": "active",
+  "dependencies": [
+    "stack-foundation"
+  ],
+  "runtimeDependencies": [
+    "stack-foundation",
+    "postgres"
+  ],
+  "contracts": [
+    "module-contract"
+  ],
+  "smoke": "external-only",
+  "smokeUnsupportedReason": "requires generated bundle context, deployed networking, secrets, or service dependencies",
+  "overlays": [
+    "stack.config/components.json",
+    "stack.config/workload-spawner",
+    "stack.containers/workload-spawner",
+    "stack.kotlin/test-runner/src/test/kotlin/org/webservices/testrunner/WorkloadSpawnerConfigTest.kt",
+    "stack.runtime.yaml"
+  ],
+  "testAssets": []
+}

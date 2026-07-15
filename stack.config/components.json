@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "components": {
+    "workload-spawner": {
+      "name": "Workload Spawner",
+      "description": "Generic RBAC/SSO workload spawner with n8n as the first active template.",
+      "dependencies": [
+        "core"
+      ],
+      "runtimeFiles": [
+        "workload-spawner.yml"
+      ]
+    }
+  }
+}

@@ -1,0 +1,82 @@
+---
+schemaVersion: 1
+module: "workload-spawner"
+target: "apps"
+services:
+  workload-spawner-api:
+    image: "localhost/webservices/workload-spawner-api:bundle"
+    build:
+      context: "./stack.containers/workload-spawner"
+      containerfile: "Containerfile"
+    containerName: "workload-spawner-api"
+    lifecycle: "daemon"
+    updatePolicy: "local"
+    placement: "rootless"
+    rootlessDomain: "workload-spawner"
+    restart: "unless-stopped"
+    command:
+      - "python3"
+      - "-m"
+      - "workload_spawner.api"
+    dependencies:
+      postgres: "started"
+    networks:
+      caddy: {}
+      postgres: {}
+    environment:
+      WORKLOAD_SPAWNER_STATE_DIR: "/var/lib/workload-spawner"
+      WORKLOAD_SPAWNER_TEMPLATES_DIR: "/etc/workload-spawner/templates"
+      WORKLOAD_SPAWNER_ROUTE_SUFFIX: "apps.${DOMAIN}"
+      WORKLOAD_SPAWNER_ALLOWED_GROUPS: "${WORKLOAD_SPAWNER_ALLOWED_GROUPS:-operators,admins}"
+      WORKLOAD_SPAWNER_PODMAN_SOCKET: "unix:///run/podman/podman.sock"
+      WORKLOAD_SPAWNER_PODMAN_NETWORKS: "webservices_workload-spawner_caddy,webservices_workload-spawner_postgres"
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_ADMIN_DB: "${POSTGRES_DB:-postgres}"
+      POSTGRES_ADMIN_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - "workload_spawner_data:/var/lib/workload-spawner"
+      - "workload_spawner_instances:/var/lib/workload-spawner/instances"
+      - "./configs/workload-spawner/templates:/etc/workload-spawner/templates:ro"
+      - "%t/podman/podman.sock:/run/podman/podman.sock"
+    health:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz || exit 1"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+      start_period: "30s"
+  workload-spawner-router:
+    image: "localhost/webservices/workload-spawner-router:bundle"
+    build:
+      context: "./stack.containers/workload-spawner"
+      containerfile: "Containerfile"
+    containerName: "workload-spawner-router"
+    lifecycle: "daemon"
+    updatePolicy: "local"
+    placement: "rootless"
+    rootlessDomain: "workload-spawner"
+    restart: "unless-stopped"
+    command:
+      - "python3"
+      - "-m"
+      - "workload_spawner.router"
+    networks:
+      caddy: {}
+    environment:
+      WORKLOAD_SPAWNER_STATE_DIR: "/var/lib/workload-spawner"
+      WORKLOAD_SPAWNER_ROUTE_SUFFIX: "apps.${DOMAIN}"
+      WORKLOAD_SPAWNER_ALLOWED_GROUPS: "${WORKLOAD_SPAWNER_ALLOWED_GROUPS:-operators,admins}"
+    volumes:
+      - "workload_spawner_data:/var/lib/workload-spawner"
+    health:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/healthz || exit 1"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+      start_period: "30s"
+volumes:
+  workload_spawner_data:
+    hostPath: "${STACK_VOLUME_ROOT}/workload_spawner_data"
+  workload_spawner_instances:
+    hostPath: "${STACK_VOLUME_ROOT}/workload_spawner_instances"

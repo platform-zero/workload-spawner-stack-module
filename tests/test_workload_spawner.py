@@ -59,6 +59,23 @@ class WorkloadSpawnerTest(unittest.TestCase):
         self.assertIn("db_password=quoted'password", first_args)
         self.assertNotIn("quoted'password", run_checked.call_args_list[0].kwargs["input_text"])
 
+    def test_root_payload_is_discoverable_and_owner_scoped(self):
+        with mock.patch.object(api, "load_templates", return_value={"n8n": {}}), mock.patch.object(
+            api,
+            "load_instances",
+            return_value={
+                "alice": {"owner": "alice"},
+                "bob": {"owner": "bob"},
+            },
+        ):
+            payload = api.root_payload("alice", {"operators"})
+
+        self.assertEqual("Workload Spawner", payload["service"])
+        self.assertEqual(1, payload["templates"])
+        self.assertEqual(1, payload["instances"])
+        self.assertEqual("/api/templates", payload["links"]["templates"])
+        self.assertEqual("/api/instances", payload["links"]["instances"])
+
 
 if __name__ == "__main__":
     unittest.main()

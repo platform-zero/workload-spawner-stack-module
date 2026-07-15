@@ -10,7 +10,7 @@ class WorkloadSpawnerConfigTest {
 
     @Test
     fun `workload spawner socket consumer uses dedicated rootless domain`() {
-        val runtime = Files.readString(root().resolve("stack.runtime.yaml"))
+        val runtime = TestSourceFiles.moduleText("workload-spawner", "stack.runtime.yaml")
 
         assertTrue(runtime.contains("workload-spawner-api:"))
         assertTrue(runtime.contains("workload-spawner-router:"))
@@ -21,7 +21,7 @@ class WorkloadSpawnerConfigTest {
 
     @Test
     fun `n8n template uses wildcard subdomain and per instance postgres context`() {
-        val template = Files.readString(root().resolve("stack.config/workload-spawner/templates/n8n.json"))
+        val template = TestSourceFiles.moduleText("workload-spawner", "stack.config/workload-spawner/templates/n8n.json")
 
         assertTrue(template.contains("\"routePrefix\": \"n8n\""))
         assertTrue(template.contains("\"DB_TYPE\": \"postgresdb\""))
@@ -34,10 +34,10 @@ class WorkloadSpawnerConfigTest {
 
     @Test
     fun `caddy protects spawner API and wildcard workload routes`() {
-        val caddy = Files.readString(findWorkspaceRoot().resolve("modules/caddy/stack.config/caddy/Caddyfile"))
+        val caddy = TestSourceFiles.moduleText("caddy", "stack.config/caddy/Caddyfile")
 
-        assertTrue(caddy.contains("spawner.{$DOMAIN}"))
-        assertTrue(caddy.contains("*.apps.{$DOMAIN}"))
+        assertTrue(caddy.contains("spawner.{${'$'}DOMAIN}"))
+        assertTrue(caddy.contains("*.apps.{${'$'}DOMAIN}"))
         assertTrue(caddy.contains("import keycloak_group_allow workload-spawner admins|operators"))
         assertTrue(caddy.contains("import keycloak_group_allow workload-spawner-app admins|operators"))
         assertTrue(caddy.contains("reverse_proxy workload-spawner-api:8080"))
@@ -48,7 +48,7 @@ class WorkloadSpawnerConfigTest {
 
     @Test
     fun `postgres provisioning uses psql variables and server side quoting`() {
-        val api = Files.readString(root().resolve("stack.containers/workload-spawner/workload_spawner/api.py"))
+        val api = TestSourceFiles.moduleText("workload-spawner", "stack.containers/workload-spawner/workload_spawner/api.py")
 
         assertTrue(api.contains("-v"))
         assertTrue(api.contains("format('CREATE ROLE %I LOGIN PASSWORD %L'"))
@@ -57,19 +57,14 @@ class WorkloadSpawnerConfigTest {
         assertFalse(api.contains("shell=True"))
     }
 
-    private fun root(): Path = findWorkspaceRoot().resolve("modules/workload-spawner")
+    @Test
+    fun `authenticated spawner root exposes a discoverable service contract`() {
+        val api = TestSourceFiles.moduleText("workload-spawner", "stack.containers/workload-spawner/workload_spawner/api.py")
 
-    private fun findWorkspaceRoot(): Path {
-        var current = Path.of("").toAbsolutePath()
-        repeat(8) {
-            if (Files.exists(current.resolve("modules/workload-spawner/stack.runtime.yaml"))) {
-                return current
-            }
-            if (Files.exists(current.resolve("stack.runtime.yaml")) && current.fileName.toString() == "workload-spawner") {
-                return current.parent.parent
-            }
-            current = current.parent ?: return@repeat
-        }
-        error("Could not locate workspace root from ${Path.of("").toAbsolutePath()}")
+        assertTrue(api.contains("if path == \"/\":"))
+        assertTrue(api.contains("\"service\": \"Workload Spawner\""))
+        assertTrue(api.contains("\"templates\": \"/api/templates\""))
+        assertTrue(api.contains("\"instances\": \"/api/instances\""))
     }
+
 }

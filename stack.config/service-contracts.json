@@ -11,14 +11,14 @@
           "host": "spawner",
           "auth": "forward_auth",
           "ui": true,
-          "audience": "operator",
+          "audience": "employee",
           "rbacEnforcement": "edge_group_allow"
         },
         {
           "host": "*.apps",
           "auth": "forward_auth",
           "ui": true,
-          "audience": "operator",
+          "audience": "employee",
           "rbacEnforcement": "edge_group_allow"
         }
       ],

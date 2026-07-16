@@ -122,6 +122,24 @@ def stop_container(container_name: str) -> None:
     run_checked(["podman", "--url", env("WORKLOAD_SPAWNER_PODMAN_SOCKET", "unix:///run/podman/podman.sock"), "stop", "--ignore", container_name])
 
 
+def root_payload(username: str, groups: set[str]) -> dict[str, Any]:
+    templates = load_templates()
+    instances = [
+        instance
+        for instance in load_instances().values()
+        if instance.get("owner") == username or "admins" in groups
+    ]
+    return {
+        "service": "Workload Spawner",
+        "templates": len(templates),
+        "instances": len(instances),
+        "links": {
+            "templates": "/api/templates",
+            "instances": "/api/instances",
+        },
+    }
+
+
 class ApiHandler(JsonHandler):
     def do_GET(self) -> None:
         path = route_path(self)
@@ -130,6 +148,9 @@ class ApiHandler(JsonHandler):
             return
         principal = require_principal(self)
         if principal is None:
+            return
+        if path == "/":
+            self.write_json(HTTPStatus.OK, root_payload(principal.username, principal.groups))
             return
         if path == "/api/templates":
             templates = load_templates()

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "rule": "container-root-default",
+      "path": "stack.containers/workload-spawner/Containerfile",
+      "reason": "The API must access its dedicated rootless Podman socket whose mapped ownership is established at runtime.",
+      "mitigations": ["The service is hosted by a dedicated unprivileged account.", "Application authorization limits workload operations to approved groups."]
+    },
+    {
+      "rule": "container-socket-mount",
+      "path": "stack.runtime.yaml",
+      "reason": "The workload API provisions approved templates through its dedicated rootless Podman service.",
+      "mitigations": ["Only the dedicated account socket is mounted.", "Templates and allowed groups are centrally constrained."]
+    }
+  ]
+}
